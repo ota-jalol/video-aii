@@ -112,8 +112,18 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ```bash
 pip install --upgrade pip
+
+# Install PyTorch with CUDA support first (adjust for your CUDA version)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# Install other dependencies
 pip install -r requirements.txt
 ```
+
+**Note on dependency resolution**: 
+- This project uses `transformers` implementation of Whisper (included in requirements.txt)
+- If you experience slow dependency resolution, the requirements have upper bounds to speed up resolution
+- Installation typically takes 5-10 minutes
 
 ### 4. Install System Dependencies
 
@@ -294,6 +304,13 @@ languages:
 - Ensure you have HuggingFace token configured
 - Accept model agreements on HuggingFace
 - Check internet connection during first model download
+
+### Installation Issues
+
+If you experience slow pip dependency resolution or conflicts, see [INSTALL_NOTES.md](INSTALL_NOTES.md) for:
+- Why we use `transformers` Whisper instead of `openai-whisper`
+- Troubleshooting dependency conflicts
+- Fresh environment setup
 
 ### FFmpeg Not Found
 

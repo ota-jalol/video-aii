@@ -10,8 +10,9 @@ git clone https://github.com/ota-jalol/video-aii.git
 cd video-aii
 python3.10 -m venv venv
 source venv/bin/activate
+pip install --upgrade pip
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-pip install -r requirements.txt
+pip install -r requirements.txt  # Takes 5-10 minutes
 
 # Configure (add your HuggingFace token)
 nano configs/config.yaml

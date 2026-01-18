@@ -101,12 +101,18 @@ conda activate video-dubbing
 # Install PyTorch with CUDA support first
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# Install other dependencies
+# Install other dependencies (this may take 5-10 minutes)
 pip install -r requirements.txt
 ```
 
 **Note**: If you have a different CUDA version, adjust the PyTorch installation command accordingly.
 Visit https://pytorch.org/get-started/locally/ for the correct command.
+
+**Dependency Resolution**: 
+- The requirements file includes version constraints to prevent dependency conflicts
+- This speeds up pip's dependency resolver significantly
+- Uses `transformers` implementation of Whisper (already included)
+- Installation typically completes in 5-10 minutes
 
 ### Step 5: HuggingFace Setup
 
