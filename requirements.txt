@@ -1,0 +1,52 @@
+# Core dependencies
+torch>=2.0.0,<2.5.0
+torchaudio>=2.0.0,<2.5.0
+transformers>=4.35.0,<4.50.0
+accelerate>=0.24.0,<1.0.0
+optimum>=1.14.0,<2.0.0
+
+# Audio processing
+demucs>=4.0.0,<5.0.0
+pydub>=0.25.1
+librosa>=0.10.0,<0.11.0
+soundfile>=0.12.1
+
+# Video processing (ffmpeg wrapper)
+ffmpeg-python>=0.2.0
+
+# Speech processing
+# Note: openai-whisper is replaced by faster-whisper for better performance and compatibility
+# Use transformers' Whisper implementation instead which is already included above
+# If you prefer openai-whisper, install separately: pip install openai-whisper==20231117
+pyannote.audio>=3.1.0,<3.4.0
+speechbrain>=0.5.16,<1.1.0
+
+# NLP and Translation
+sentencepiece>=0.1.99,<1.0.0
+sacremoses>=0.0.53
+protobuf>=3.20.0,<5.0.0
+
+# Text-to-Speech
+TTS>=0.21.0,<0.23.0
+
+# Quantization
+bitsandbytes>=0.41.0,<0.45.0
+
+# Configuration
+PyYAML>=6.0,<7.0
+
+# Utilities
+numpy>=1.24.0,<2.0.0
+scipy>=1.11.0,<1.15.0
+einops>=0.7.0,<1.0.0
+safetensors>=0.4.0,<1.0.0
+
+# Additional dependencies for specific models
+# Note: Some models may require authentication tokens from HuggingFace
+# Visit https://huggingface.co/settings/tokens to generate a token
+
+# System requirements (install separately):
+# - ffmpeg (for audio/video processing)
+# - rubberband (optional, for high-quality time stretching)
+#   Install: sudo apt-get install rubberband-cli (Linux)
+#            brew install rubberband (macOS)

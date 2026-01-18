@@ -1,0 +1,77 @@
+# Main configuration for multilingual video dubbing system
+
+# System settings
+system:
+  gpu_memory_gb: 12
+  device: "cuda"  # or "cpu"
+  max_workers: 4
+  temp_dir: "/tmp/video_dubbing"
+  
+# Model paths (will be downloaded to models/ directory)
+models:
+  whisper:
+    name: "openai/whisper-large-v3"
+    quantization: "int8"
+    device: "cuda"
+  
+  diarization:
+    name: "pyannote/speaker-diarization-3.1"
+    auth_token: null  # Optional HuggingFace token
+    device: "cuda"
+  
+  emotion:
+    name: "speechbrain/emotion-recognition-wav2vec2-IEMOCAP"
+    device: "cuda"
+  
+  translation:
+    name: "facebook/nllb-200-1.3B"
+    device: "cuda"
+  
+  post_edit_llm:
+    name: "Qwen/Qwen2.5-7B-Instruct"
+    quantization: "4bit"
+    device: "cuda"
+  
+  tts:
+    name: "coqui/XTTS-v2"
+    device: "cuda"
+
+# Audio processing settings
+audio:
+  sample_rate: 16000
+  channels: 1
+  format: "wav"
+  
+  separation:
+    model: "htdemucs"  # Use demucs for music/speech separation
+    device: "cuda"
+  
+  alignment:
+    stretch_algorithm: "rubberband"  # or "phase_vocoder"
+    max_stretch_ratio: 1.5
+
+# Processing settings
+processing:
+  batch_size_stt: 8  # Batch multiple segments for STT
+  sequential_tts: true  # Process TTS sequentially to avoid OOM
+  retry_attempts: 3
+  retry_delay: 5  # seconds
+
+# Language settings
+languages:
+  source: "auto"  # Auto-detect
+  target: "en"  # Default target language
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/dubbing.log"
+  console: true
+
+# Output settings
+output:
+  video_codec: "libx264"
+  audio_codec: "aac"
+  audio_bitrate: "192k"
+  video_quality: "23"  # CRF value (lower = better quality)
