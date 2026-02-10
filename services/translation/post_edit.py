@@ -1,34 +1,58 @@
-"""Post-editing service using LLM for natural spoken language."""
+"""Post-editing service using LLM (local or GitHub Models) for natural spoken language."""
 
 import torch
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from utils import get_logger, cleanup_model
 
 logger = get_logger(__name__)
 
 
 class PostEditService:
-    """Post-edits translations for natural spoken language using Qwen."""
-    
+    """Post-edits translations for natural spoken language using Qwen (local) or GitHub Models (cloud)."""
+
     def __init__(
         self,
         model_name: str = "Qwen/Qwen2.5-7B-Instruct",
         device: str = "cuda",
-        quantization: str = "4bit"
+        quantization: str = "4bit",
+        use_github_models: bool = False,
+        github_model: str = "gpt-4o-mini",
+        github_endpoint: str = "https://models.inference.ai.azure.com",
+        github_token: Optional[str] = None
     ):
         """
         Initialize post-edit service.
-        
+
         Args:
-            model_name: LLM model name
-            device: Device for inference
-            quantization: Quantization mode (4bit, 8bit, none)
+            model_name: LLM model name (for local mode)
+            device: Device for inference (for local mode)
+            quantization: Quantization mode (4bit, 8bit, none) (for local mode)
+            use_github_models: Whether to use GitHub Models instead of local
+            github_model: GitHub model name
+            github_endpoint: GitHub Models endpoint
+            github_token: GitHub token
         """
         self.model_name = model_name
         self.device = device if torch.cuda.is_available() else "cpu"
         self.quantization = quantization
+        self.use_github_models = use_github_models
+        self.github_model = github_model
         self.model = None
         self.tokenizer = None
+        self.github_client = None
+
+        # Initialize GitHub Models client if enabled
+        if self.use_github_models:
+            try:
+                from services.github_models_client import GitHubModelsClient
+                self.github_client = GitHubModelsClient(
+                    endpoint=github_endpoint,
+                    token=github_token
+                )
+                logger.info(f"Using GitHub Models for post-editing: {github_model}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize GitHub Models, falling back to local: {e}")
+                self.use_github_models = False
     
     def load_model(self):
         """Load LLM model and tokenizer."""
@@ -97,25 +121,40 @@ class PostEditService:
     ) -> str:
         """
         Post-edit translated text for natural spoken language.
-        
+
         Args:
             text: Translated text
             target_lang: Target language
             emotion: Emotion label (optional)
             context: Additional context (optional)
-            
+
         Returns:
             Post-edited text
         """
         if not text.strip():
             return ""
-        
+
+        # Use GitHub Models if enabled
+        if self.use_github_models and self.github_client:
+            try:
+                return self.github_client.post_edit_text(
+                    text=text,
+                    target_lang=target_lang,
+                    emotion=emotion,
+                    context=context,
+                    model=self.github_model
+                )
+            except Exception as e:
+                logger.error(f"GitHub Models post-editing failed: {e}")
+                # Fall through to local post-editing
+
+        # Use local LLM model
         self.load_model()
-        
+
         try:
             # Build prompt
             prompt = self._build_prompt(text, target_lang, emotion, context)
-            
+
             # Tokenize
             inputs = self.tokenizer(
                 prompt,
@@ -123,11 +162,11 @@ class PostEditService:
                 truncation=True,
                 max_length=512
             )
-            
+
             # Move to device
             if self.device != "auto":
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
+
             # Generate
             with torch.no_grad():
                 outputs = self.model.generate(
@@ -138,15 +177,15 @@ class PostEditService:
                     top_p=0.9,
                     pad_token_id=self.tokenizer.eos_token_id
                 )
-            
+
             # Decode
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
+
             # Extract edited text (remove prompt)
             edited_text = self._extract_response(response, prompt)
-            
+
             return edited_text.strip()
-            
+
         except Exception as e:
             logger.error(f"Failed to post-edit text: {e}")
             return text  # Return original text on error

@@ -1,14 +1,14 @@
-"""Translation service using NLLB."""
+"""Translation service using NLLB or GitHub Models."""
 
 import torch
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from utils import get_logger, cleanup_model
 
 logger = get_logger(__name__)
 
 
 class TranslationService:
-    """Performs translation using NLLB-200."""
+    """Performs translation using NLLB-200 (local) or GitHub Models (cloud)."""
     
     # Language code mapping (ISO to NLLB format)
     LANG_CODE_MAP = {
@@ -33,23 +33,47 @@ class TranslationService:
         'uk': 'ukr_Cyrl',
         'ro': 'ron_Latn'
     }
-    
+
     def __init__(
         self,
         model_name: str = "facebook/nllb-200-1.3B",
-        device: str = "cuda"
+        device: str = "cuda",
+        use_github_models: bool = False,
+        github_model: str = "gpt-4o-mini",
+        github_endpoint: str = "https://models.inference.ai.azure.com",
+        github_token: Optional[str] = None
     ):
         """
         Initialize translation service.
-        
+
         Args:
-            model_name: NLLB model name
-            device: Device for inference
+            model_name: NLLB model name (for local mode)
+            device: Device for inference (for local mode)
+            use_github_models: Whether to use GitHub Models instead of local
+            github_model: GitHub model name
+            github_endpoint: GitHub Models endpoint
+            github_token: GitHub token
         """
         self.model_name = model_name
         self.device = device if torch.cuda.is_available() else "cpu"
+        self.use_github_models = use_github_models
+        self.github_model = github_model
         self.model = None
         self.tokenizer = None
+        self.github_client = None
+
+        # Initialize GitHub Models client if enabled
+        if self.use_github_models:
+            try:
+                from services.github_models_client import GitHubModelsClient
+                self.github_client = GitHubModelsClient(
+                    endpoint=github_endpoint,
+                    token=github_token
+                )
+                logger.info(f"Using GitHub Models for translation: {github_model}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize GitHub Models, falling back to local: {e}")
+                self.use_github_models = False
     
     def load_model(self):
         """Load NLLB model and tokenizer."""
@@ -104,29 +128,43 @@ class TranslationService:
     ) -> str:
         """
         Translate text from source to target language.
-        
+
         Args:
             text: Text to translate
             source_lang: Source language code (ISO)
             target_lang: Target language code (ISO)
             max_length: Maximum output length
-            
+
         Returns:
             Translated text
         """
         if not text.strip():
             return ""
-        
+
+        # Use GitHub Models if enabled
+        if self.use_github_models and self.github_client:
+            try:
+                return self.github_client.translate_text(
+                    text=text,
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                    model=self.github_model
+                )
+            except Exception as e:
+                logger.error(f"GitHub Models translation failed: {e}")
+                # Fall through to local translation
+
+        # Use local NLLB model
         self.load_model()
-        
+
         try:
             # Convert to NLLB language codes
             src_lang = self.get_nllb_lang_code(source_lang)
             tgt_lang = self.get_nllb_lang_code(target_lang)
-            
+
             # Set source language
             self.tokenizer.src_lang = src_lang
-            
+
             # Tokenize
             inputs = self.tokenizer(
                 text,
@@ -135,10 +173,10 @@ class TranslationService:
                 truncation=True,
                 max_length=max_length
             )
-            
+
             # Move to device
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
+
             # Generate translation
             with torch.no_grad():
                 generated_tokens = self.model.generate(
@@ -148,15 +186,15 @@ class TranslationService:
                     num_beams=5,
                     early_stopping=True
                 )
-            
+
             # Decode
             translation = self.tokenizer.batch_decode(
                 generated_tokens,
                 skip_special_tokens=True
             )[0]
-            
+
             return translation.strip()
-            
+
         except Exception as e:
             logger.error(f"Failed to translate text: {e}")
             return text  # Return original text on error

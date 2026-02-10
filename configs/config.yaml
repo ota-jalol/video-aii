@@ -6,32 +6,45 @@ system:
   device: "cuda"  # or "cpu"
   max_workers: 4
   temp_dir: "/tmp/video_dubbing"
-  
-# Model paths (will be downloaded to models/ directory)
+
+# GitHub Models Configuration
+# Set GITHUB_TOKEN environment variable or configure it here
+github_models:
+  enabled: true  # Set to false to use local models
+  endpoint: "https://models.inference.ai.azure.com"
+  token: null  # Set GITHUB_TOKEN env variable or add token here
+
+# Model paths (will be downloaded to models/ directory for local mode)
 models:
   whisper:
     name: "openai/whisper-large-v3"
     quantization: "int8"
     device: "cuda"
-  
+
   diarization:
     name: "pyannote/speaker-diarization-3.1"
     auth_token: null  # Optional HuggingFace token
     device: "cuda"
-  
+
   emotion:
     name: "speechbrain/emotion-recognition-wav2vec2-IEMOCAP"
     device: "cuda"
-  
+
   translation:
-    name: "facebook/nllb-200-1.3B"
+    # Local mode: facebook/nllb-200-1.3B
+    # GitHub Models: Use LLM-based translation with GPT-4o-mini or Phi-4
+    name: "facebook/nllb-200-1.3B"  # Local fallback
+    github_model: "gpt-4o-mini"  # Used when github_models.enabled=true
     device: "cuda"
-  
+
   post_edit_llm:
-    name: "Qwen/Qwen2.5-7B-Instruct"
+    # Local mode: Qwen/Qwen2.5-7B-Instruct
+    # GitHub Models: gpt-4o-mini, phi-4, mistral-large-3
+    name: "Qwen/Qwen2.5-7B-Instruct"  # Local fallback
+    github_model: "gpt-4o-mini"  # Used when github_models.enabled=true
     quantization: "4bit"
     device: "cuda"
-  
+
   tts:
     name: "coqui/XTTS-v2"
     device: "cuda"
