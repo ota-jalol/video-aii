@@ -2,7 +2,160 @@
 
 This guide will help you set up the multilingual video dubbing system from scratch.
 
-## Prerequisites Checklist
+## Choose Your Setup Mode
+
+This system supports two modes:
+
+1. **Cloud Mode (GitHub Models)** - Recommended for beginners
+   - ✅ No GPU required
+   - ✅ Faster setup (no model downloads)
+   - ✅ Always up-to-date models
+   - ❌ Requires internet connection
+   - ❌ API rate limits apply
+
+2. **Local Mode** - For offline use
+   - ✅ 100% offline after setup
+   - ✅ No rate limits
+   - ✅ Full privacy
+   - ❌ Requires 12GB GPU
+   - ❌ 20GB model downloads
+
+---
+
+## Quick Setup (Cloud Mode with GitHub Models)
+
+### Prerequisites Checklist
+
+Before starting, ensure you have:
+
+- [ ] Linux, macOS, or Windows OS
+- [ ] Python 3.10 or 3.11 installed
+- [ ] 8GB+ RAM
+- [ ] Internet connection
+- [ ] GitHub account (free)
+
+### Step-by-Step Installation
+
+#### Step 1: System Dependencies
+
+##### Ubuntu/Debian Linux
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg rubberband-cli
+ffmpeg -version
+```
+
+##### macOS
+
+```bash
+brew install ffmpeg rubberband
+ffmpeg -version
+```
+
+##### Windows
+
+1. Download FFmpeg from https://ffmpeg.org/download.html
+2. Extract to `C:\ffmpeg`
+3. Add `C:\ffmpeg\bin` to PATH
+4. Verify: `ffmpeg -version`
+
+#### Step 2: Clone Repository
+
+```bash
+git clone https://github.com/ota-jalol/video-aii.git
+cd video-aii
+```
+
+#### Step 3: Python Environment
+
+```bash
+# Create virtual environment
+python3.10 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # Linux/Mac
+# OR
+venv\Scripts\activate  # Windows
+
+# Upgrade pip
+pip install --upgrade pip
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+#### Step 4: Get GitHub Token
+
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. No special permissions needed
+4. Copy the token
+
+#### Step 5: Set Environment Variable
+
+```bash
+# Linux/macOS
+export GITHUB_TOKEN="your_github_token_here"
+
+# Windows (PowerShell)
+$Env:GITHUB_TOKEN="your_github_token_here"
+
+# Windows (CMD)
+set GITHUB_TOKEN=your_github_token_here
+```
+
+#### Step 6: Configure for Cloud Mode
+
+Edit `configs/config.yaml`:
+
+```yaml
+github_models:
+  enabled: true  # Enable GitHub Models
+  endpoint: "https://models.inference.ai.azure.com"
+  token: null  # Uses GITHUB_TOKEN environment variable
+
+models:
+  translation:
+    github_model: "gpt-4o-mini"  # Fast and cost-effective
+
+  post_edit_llm:
+    github_model: "gpt-4o-mini"  # Fast and cost-effective
+```
+
+#### Step 7: Get HuggingFace Token (For Diarization)
+
+Even in cloud mode, diarization runs locally and needs HuggingFace access:
+
+1. Visit https://huggingface.co/join and create account
+2. Accept agreements:
+   - https://huggingface.co/pyannote/speaker-diarization-3.1
+   - https://huggingface.co/pyannote/segmentation-3.0
+3. Generate token: https://huggingface.co/settings/tokens
+4. Add to `configs/config.yaml`:
+   ```yaml
+   models:
+     diarization:
+       auth_token: "hf_YourTokenHere"
+   ```
+
+#### Step 8: Test Installation
+
+```bash
+# Verify setup
+python main.py --help
+
+# Run a test (use a short video)
+python main.py input.mp4 output.mp4 --target-lang en
+```
+
+That's it! You're ready to use GitHub Models.
+
+---
+
+## Advanced Setup (Local Mode)
+
+### Prerequisites Checklist
 
 Before starting, ensure you have:
 
@@ -190,6 +343,61 @@ print('Models downloaded!')
 ```
 
 ## Configuration
+
+### Cloud Mode Configuration
+
+Edit `configs/config.yaml`:
+
+```yaml
+# Enable GitHub Models
+github_models:
+  enabled: true
+  endpoint: "https://models.inference.ai.azure.com"
+  token: null  # Uses GITHUB_TOKEN env variable
+
+# Choose your models
+models:
+  translation:
+    github_model: "gpt-4o-mini"  # Options: gpt-4o-mini, phi-4, mistral-large-3
+
+  post_edit_llm:
+    github_model: "gpt-4o-mini"  # Options: gpt-4o-mini, phi-4, gpt-4o
+
+languages:
+  target: "en"  # Your default target language
+```
+
+### Local Mode Configuration
+
+Edit `configs/config.yaml`:
+
+```yaml
+# Disable GitHub Models for local operation
+github_models:
+  enabled: false
+
+# Local models configuration
+models:
+  whisper:
+    quantization: "int8"
+    device: "cuda"
+
+  translation:
+    name: "facebook/nllb-200-1.3B"
+    device: "cuda"
+
+  post_edit_llm:
+    name: "Qwen/Qwen2.5-7B-Instruct"
+    quantization: "4bit"
+    device: "cuda"
+
+system:
+  gpu_memory_gb: 12  # Adjust to your GPU
+  device: "cuda"
+
+languages:
+  target: "en"
+```
 
 ### Basic Configuration
 

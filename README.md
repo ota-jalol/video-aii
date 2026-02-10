@@ -4,17 +4,22 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)
 
-A **fully local, offline, end-to-end multilingual video dubbing system** that translates and dubs videos from any language to any language while preserving speaker identity, emotion, and prosody.
+A **multilingual video dubbing system** that translates and dubs videos from any language to any language while preserving speaker identity, emotion, and prosody.
+
+**Two Modes Available:**
+- **Cloud Mode (GitHub Models)**: Uses cloud-based AI models via GitHub - no GPU required! ☁️
+- **Local Mode**: 100% offline with local models - requires 12GB GPU 💻
 
 ## 🎯 Features
 
-- **100% Offline**: No internet required after setup
+- **Cloud or Local**: Choose between GitHub Models (cloud) or local models
+- **No GPU Required (Cloud Mode)**: Use GitHub Models with just a GitHub account
+- **100% Offline (Local Mode)**: No internet required after setup
 - **Multilingual**: Supports 200+ languages (any → any translation)
 - **Voice Cloning**: Preserves speaker identity in the target language
 - **Emotion Preservation**: Maintains emotional tone and prosody
 - **Speaker Diarization**: Handles multiple speakers automatically
 - **Production Ready**: Modular, extensible, and memory-efficient
-- **GPU Optimized**: Runs on 12GB VRAM with intelligent memory management
 
 ## 🏗️ Pipeline Architecture
 
@@ -81,7 +86,15 @@ A **fully local, offline, end-to-end multilingual video dubbing system** that tr
 
 ## 📋 Requirements
 
-### System Requirements
+### Cloud Mode (GitHub Models) - Recommended for Beginners
+- **OS**: Linux, macOS, or Windows
+- **GPU**: Not required (uses cloud-based models)
+- **RAM**: 8GB+ recommended
+- **Python**: 3.10 or higher
+- **GitHub Account**: Free account required
+- **Internet**: Required for API calls
+
+### Local Mode (Offline)
 - **OS**: Linux or Windows
 - **GPU**: 12GB VRAM (CUDA-capable)
 - **RAM**: 16GB+ recommended
@@ -94,62 +107,99 @@ A **fully local, offline, end-to-end multilingual video dubbing system** that tr
 
 ## 🚀 Installation
 
-### 1. Clone the Repository
+### Quick Start with Cloud Mode (GitHub Models)
+
+This is the easiest way to get started - no GPU or model downloads required!
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/ota-jalol/video-aii.git
 cd video-aii
 ```
 
-### 2. Create Virtual Environment
+#### 2. Create Virtual Environment
 
 ```bash
 python3.10 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### 3. Install Python Dependencies
+#### 3. Install Dependencies
 
 ```bash
 pip install --upgrade pip
-
-# Install PyTorch with CUDA support first (adjust for your CUDA version)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-
-# Install other dependencies
 pip install -r requirements.txt
 ```
 
-**Note on dependency resolution**: 
-- This project uses `transformers` implementation of Whisper (included in requirements.txt)
-- If you experience slow dependency resolution, the requirements have upper bounds to speed up resolution
-- Installation typically takes 5-10 minutes
+#### 4. Get GitHub Token
 
-### 4. Install System Dependencies
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token" (classic)
+3. No special permissions needed - just create the token
+4. Copy the token
 
-#### Linux (Ubuntu/Debian)
+#### 5. Set Environment Variable
+
 ```bash
+# Linux/macOS
+export GITHUB_TOKEN="your_github_token_here"
+
+# Windows (PowerShell)
+$Env:GITHUB_TOKEN="your_github_token_here"
+
+# Windows (CMD)
+set GITHUB_TOKEN=your_github_token_here
+```
+
+#### 6. Configure for Cloud Mode
+
+Edit `configs/config.yaml`:
+```yaml
+github_models:
+  enabled: true  # Enable GitHub Models
+  endpoint: "https://models.inference.ai.azure.com"
+  token: null  # Uses GITHUB_TOKEN env variable
+```
+
+#### 7. Install System Dependencies
+
+```bash
+# Linux (Ubuntu/Debian)
 sudo apt-get update
 sudo apt-get install -y ffmpeg rubberband-cli
-```
 
-#### macOS
-```bash
+# macOS
 brew install ffmpeg rubberband
+
+# Windows: Download FFmpeg from https://ffmpeg.org/download.html
 ```
 
-#### Windows
-- Download FFmpeg from https://ffmpeg.org/download.html
-- Add to PATH
-- Rubberband is optional on Windows
+That's it! You're ready to use the system with GitHub Models. No GPU or model downloads needed!
 
-### 5. Download Models (First Run)
+---
 
-Models will be automatically downloaded on first use. Ensure you have:
-- HuggingFace access for pyannote models (requires token)
-- ~20GB free disk space
+### Advanced: Local Mode Installation
 
-#### Get HuggingFace Token (Required for Diarization)
+For offline use with local models (requires 12GB GPU):
+
+Follow steps 1-3 above, then:
+
+#### 4. Install PyTorch with CUDA
+
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+#### 5. Configure for Local Mode
+
+Edit `configs/config.yaml`:
+```yaml
+github_models:
+  enabled: false  # Disable GitHub Models to use local models
+```
+
+#### 6. Get HuggingFace Token (Required for Diarization)
 
 1. Create account at https://huggingface.co
 2. Accept user agreement for pyannote models:
@@ -162,6 +212,14 @@ Models will be automatically downloaded on first use. Ensure you have:
      diarization:
        auth_token: "your_token_here"
    ```
+
+#### 7. Install System Dependencies
+
+Same as cloud mode (FFmpeg, Rubberband)
+
+#### 8. Download Models (First Run)
+
+Models will be automatically downloaded on first use (~20GB)
 
 ## 💻 Usage
 
@@ -246,7 +304,50 @@ video-aii/
 
 ## ⚙️ Configuration
 
-Edit `configs/config.yaml` to customize:
+### Switching Between Cloud and Local Mode
+
+Edit `configs/config.yaml`:
+
+**For Cloud Mode (GitHub Models):**
+```yaml
+github_models:
+  enabled: true  # Enable cloud-based models
+  endpoint: "https://models.inference.ai.azure.com"
+  token: null  # Uses GITHUB_TOKEN environment variable
+
+models:
+  translation:
+    github_model: "gpt-4o-mini"  # Fast and cost-effective
+    # Alternative: "phi-4", "mistral-large-3"
+
+  post_edit_llm:
+    github_model: "gpt-4o-mini"  # Fast and cost-effective
+    # Alternative: "phi-4", "gpt-4o"
+```
+
+**For Local Mode:**
+```yaml
+github_models:
+  enabled: false  # Use local models
+
+models:
+  translation:
+    name: "facebook/nllb-200-1.3B"
+    device: "cuda"
+
+  post_edit_llm:
+    name: "Qwen/Qwen2.5-7B-Instruct"
+    quantization: "4bit"
+    device: "cuda"
+```
+
+### Available GitHub Models
+
+For translation and post-editing:
+- **gpt-4o-mini**: Fast, cost-effective, recommended for most users
+- **gpt-4o**: More capable, higher quality
+- **phi-4**: Microsoft's efficient model, good balance
+- **mistral-large-3**: Open weights, strong performance
 
 ### System Settings
 ```yaml
@@ -411,4 +512,38 @@ For issues, questions, or contributions:
 
 ---
 
-**Note**: This system is designed for offline use with local models. First-time setup requires internet to download models (~20GB). After initial setup, the system runs completely offline.
+## 🌐 GitHub Models Integration
+
+This project now supports GitHub Models, providing cloud-based AI inference through Microsoft's Azure AI platform. This means:
+
+### Benefits of GitHub Models
+
+- **No GPU Required**: Run AI models without expensive hardware
+- **Easy Setup**: Just a GitHub token - no model downloads
+- **Always Up-to-Date**: Access to latest models without manual updates
+- **Cost-Effective**: Free tier available for experimentation
+- **Flexible**: Switch between multiple models instantly
+
+### How It Works
+
+The system uses the Azure AI Inference SDK to connect to GitHub's model catalog. When enabled:
+
+1. **Translation**: Uses GPT-4o-mini or other LLMs instead of NLLB-200
+2. **Post-Editing**: Uses cloud-based LLMs instead of local Qwen model
+3. **Other Services**: STT, TTS, and diarization still run locally (for now)
+
+### Cost Considerations
+
+GitHub Models offers:
+- **Free Tier**: Limited requests for prototyping and testing
+- **Paid Tier**: Higher rate limits for production use
+
+Check [GitHub Models documentation](https://github.com/marketplace?type=models) for current pricing and limits.
+
+### Fallback to Local Models
+
+If GitHub Models fails or is unavailable, the system automatically falls back to local models (if configured). This ensures reliability even when the cloud service is down.
+
+---
+
+**Note**: The system is designed to be flexible - you can use GitHub Models (cloud), local models (offline), or a hybrid approach where some services use cloud and others use local models.

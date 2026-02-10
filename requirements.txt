@@ -35,6 +35,9 @@ bitsandbytes>=0.41.0,<0.45.0
 # Configuration
 PyYAML>=6.0,<7.0
 
+# Azure AI Inference SDK for GitHub Models
+azure-ai-inference>=1.0.0b6
+
 # Utilities
 numpy>=1.24.0,<2.0.0
 scipy>=1.11.0,<1.15.0

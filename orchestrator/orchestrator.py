@@ -1,5 +1,6 @@
 """Orchestrator for the video dubbing pipeline."""
 
+import os
 import time
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -71,67 +72,86 @@ class DubbingOrchestrator:
     def _init_services(self):
         """Initialize all pipeline services."""
         logger.info("Initializing pipeline services")
-        
+
         # Get configuration
         audio_config = self.config.get('audio', {})
         models_config = self.config.get('models', {})
         processing_config = self.config.get('processing', {})
-        
+        github_models_config = self.config.get('github_models', {})
+
+        # Check if GitHub Models is enabled
+        use_github_models = github_models_config.get('enabled', False)
+        github_endpoint = github_models_config.get('endpoint', 'https://models.inference.ai.azure.com')
+        github_token = github_models_config.get('token') or os.environ.get('GITHUB_TOKEN')
+
+        if use_github_models:
+            logger.info("GitHub Models enabled - using cloud-based AI models")
+        else:
+            logger.info("Using local AI models")
+
         # Initialize services
         self.ingestion_service = VideoIngestionService()
-        
+
         self.extraction_service = AudioExtractionService(
             sample_rate=audio_config.get('sample_rate', 16000)
         )
-        
+
         self.separation_service = SeparationService(
             model_name=audio_config.get('separation', {}).get('model', 'htdemucs'),
             device=models_config.get('whisper', {}).get('device', 'cuda')
         )
-        
+
         self.diarization_service = DiarizationService(
             model_name=models_config.get('diarization', {}).get('name'),
             device=models_config.get('diarization', {}).get('device', 'cuda'),
             auth_token=models_config.get('diarization', {}).get('auth_token')
         )
-        
+
         self.stt_service = STTService(
             model_name=models_config.get('whisper', {}).get('name'),
             device=models_config.get('whisper', {}).get('device', 'cuda'),
             quantization=models_config.get('whisper', {}).get('quantization', 'int8')
         )
-        
+
         self.emotion_service = EmotionService(
             model_name=models_config.get('emotion', {}).get('name'),
             device=models_config.get('emotion', {}).get('device', 'cuda')
         )
-        
+
         self.translation_service = TranslationService(
             model_name=models_config.get('translation', {}).get('name'),
-            device=models_config.get('translation', {}).get('device', 'cuda')
+            device=models_config.get('translation', {}).get('device', 'cuda'),
+            use_github_models=use_github_models,
+            github_model=models_config.get('translation', {}).get('github_model', 'gpt-4o-mini'),
+            github_endpoint=github_endpoint,
+            github_token=github_token
         )
-        
+
         self.post_edit_service = PostEditService(
             model_name=models_config.get('post_edit_llm', {}).get('name'),
             device=models_config.get('post_edit_llm', {}).get('device', 'cuda'),
-            quantization=models_config.get('post_edit_llm', {}).get('quantization', '4bit')
+            quantization=models_config.get('post_edit_llm', {}).get('quantization', '4bit'),
+            use_github_models=use_github_models,
+            github_model=models_config.get('post_edit_llm', {}).get('github_model', 'gpt-4o-mini'),
+            github_endpoint=github_endpoint,
+            github_token=github_token
         )
-        
+
         self.tts_service = TTSService(
             device=models_config.get('tts', {}).get('device', 'cuda')
         )
-        
+
         self.alignment_service = AlignmentService(
             stretch_algorithm=audio_config.get('alignment', {}).get('stretch_algorithm', 'rubberband')
         )
-        
+
         output_config = self.config.get('output', {})
         self.muxing_service = MuxingService(
             video_codec='copy',  # Don't re-encode video
             audio_codec=output_config.get('audio_codec', 'aac'),
             audio_bitrate=output_config.get('audio_bitrate', '192k')
         )
-        
+
         logger.info("All services initialized")
     
     def _retry_with_backoff(self, func, *args, max_attempts: int = 3, **kwargs):
