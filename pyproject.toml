@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-aii"
+version = "0.1.0"
+description = "Minimal toolkit for video project analysis and reporting"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "video-aii contributors" }]
+dependencies = []
+
+[project.scripts]
+video-aii = "video_aii.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
